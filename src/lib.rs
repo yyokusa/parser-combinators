@@ -9,6 +9,8 @@ struct Element {
     children: Vec<Element>,
 }
 
+/// This function takes a string slice as input and returns
+/// a tuple of the remaining string slice and the matched string slice.
 pub fn match_literal(expected: &'static str) 
 -> impl Fn(&str) -> Result<(&str, ()), &str>
 {
@@ -18,6 +20,11 @@ pub fn match_literal(expected: &'static str)
     }
 }
 
+/// This function takes a string slice as input and returns
+///  a tuple of the remaining string slice and the matched string slice. 
+/// If the input string slice does not start with an alphabetic character
+/// it returns an error.
+#[allow(dead_code)]
 fn identifier(input: &str) -> Result<(&str, String), &str> {
     let mut matched = String::new();
     let mut chars = input.chars();
@@ -39,12 +46,34 @@ fn identifier(input: &str) -> Result<(&str, String), &str> {
     Ok((&input[next_index..], matched))
 }
 
+/// This function takes two parsers as input and returns a new parser
+/// that runs the first parser and then the second on the remaining input.
+/// If both parsers succeed, it returns a tuple of the remaining input
+/// and the two parsed values. If either parser fails, it returns an error.
+#[allow(dead_code)]
+fn pair<P1, P2, R1, R2>(parser1: P1, parser2: P2) 
+-> impl Fn(&str) -> Result<(&str, (R1, R2)), &str> 
+where 
+    P1: Fn(&str) -> Result<(&str, R1), &str>,
+    P2: Fn(&str) -> Result<(&str, R2), &str>,
+{
+    move |input| match parser1(input) {
+        Ok((next_input, result1)) => match parser2(next_input) {
+            Ok((final_input, result2)) => Ok((final_input, (result1, result2))),
+            Err(err) => Err(err),
+        },
+        Err(err) => Err(err),
+    }
+}
+
 
 
 #[cfg(test)]
 mod tests {
     use crate::match_literal;
     use crate::identifier;
+    use crate::pair;
+
     #[test]
     fn literal_parser() {
         let parse_joe = match_literal("Hello Joe!");
@@ -76,6 +105,17 @@ mod tests {
             Err("!not at all an identifier"),
             identifier("!not at all an identifier")
         );
+    }
+
+    #[test]
+    fn pair_combinator() {
+        let tag_opener = pair(match_literal("<"), identifier);
+        assert_eq!(
+            Ok(("/>", ((), "my-first-element".to_string()))),
+            tag_opener("<my-first-element/>")
+        );
+        assert_eq!(Err("oops"), tag_opener("oops"));
+        assert_eq!(Err("!oops"), tag_opener("<!oops"));
     }
 }
 
