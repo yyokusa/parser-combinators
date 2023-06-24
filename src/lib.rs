@@ -23,7 +23,7 @@ fn identifier(input: &str) -> Result<(&str, String), &str> {
     let mut chars = input.chars();
 
     match chars.next() {
-        Some(next) if next.is_alphabetic() => matched.push(next)
+        Some(next) if next.is_alphabetic() => matched.push(next),
         _ => return Err(input),
     }
 
@@ -44,6 +44,7 @@ fn identifier(input: &str) -> Result<(&str, String), &str> {
 #[cfg(test)]
 mod tests {
     use crate::match_literal;
+    use crate::identifier;
     #[test]
     fn literal_parser() {
         let parse_joe = match_literal("Hello Joe!");
@@ -58,6 +59,22 @@ mod tests {
         assert_eq!(
             Err("Hello Mike!"),
             parse_joe("Hello Mike!")
+        );
+    }
+
+    #[test]
+    fn identifier_parser() {
+        assert_eq!(
+            Ok(("", "i-am-an-identifier".to_string())),
+            identifier("i-am-an-identifier")
+        );
+        assert_eq!(
+            Ok((" entirely an identifier", "not".to_string())),
+            identifier("not entirely an identifier")
+        );
+        assert_eq!(
+            Err("!not at all an identifier"),
+            identifier("!not at all an identifier")
         );
     }
 }
